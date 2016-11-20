@@ -15,7 +15,9 @@ struct data
 	mytype type ;
 	Myoppri  oppri;
 	int value ;//是數字 
-	char oper ;//是運算子 
+	char oper ;//是運算子
+	
+	data SetData(char );//給定 temp(data 變數) 的內容用  
 };
 
 struct mystack
@@ -26,7 +28,7 @@ struct mystack
 	bool IsFull() ;
 	void Push(data) ;
 	data Pop() ;
-	data Top() ;
+	Myoppri TopLevel() ;//看 top 的 優先級 
 	
 	mystack()
 	{
@@ -41,24 +43,25 @@ struct myresult//儲存 轉換後的結果
 	
 	
 	void Show(); 
-	void Zero();
+	void Clear();//initialize
 	void PutC(char);//以字元 存入 term 
 	void PutN(int);//以整數 存入 term  
 	int  CalcuPost();//計算後序  有小數會失去精準 
 	myresult()
 	{
-		Zero();
+		Clear();
 	}
 };
 
 struct PreNum//把數字黏起來 ∵讀入的時候是一個一個讀  
 {            
 	char data[MAX];//目前的結果  
-	int  now;
+	int       now;
 	char PreData; //先前讀入的字元
 	
 	void Put(char);//放入 元素 ASCII為 1~10的數字 
-	int ReturnData();
+	
+	int ReturnData();//回傳目前 data 數值 (字串轉整數) 
 	int Clear();//將此歸零
 	
 	PreNum()
@@ -73,9 +76,7 @@ int main()
 	if( fptr == NULL )
 	    printf("open failed.\n");
 	
-	int           r=0;
 	char ch;
-	
 	mystack s;
 	data eatPop; //pop 出來的東西 
 	data temp;   //暫存欲要讀入的 資料(+-*/ & mytype)
@@ -88,127 +89,64 @@ int main()
 		if( ch == '\n' )
 		    printf("  中序");
 		printf("%c",ch);//印出 中序用 
+		
 		if( ch != '\n')//同一行 
 		{
-			
-		
-			//printf("尚未換行 DATA是 %c\n",ch);
 			if( !IsOperator(ch) )//是運算元就進此判斷  
 			{
 		        //printf("此為 數字類型\n");
 				//儲存不在這邊處理 看到運算符才處理) 
-		//	    printf("%c",ch);
+		        //printf("%c",ch);
 				pre.Put(ch);
 			}
 			
 			else//運算子 這邊才需要Push 
 			{
-				//----------------------------------確定了 數字長度 
-				if( pre.ReturnData()!=0 )
+				//-----------------讀到了運算子---總結前面讀到的數字 
+				if( pre.ReturnData()!=0 )//防止計算括號 val=0 
 				{
 					post.PutN( pre.ReturnData() );//存結果
 					pre.Clear();
 		        }
 				//----------------------------------
-				//printf("push>%c<符號\n",ch);
+				
 				/*給定 優先級 並 給予 符號內容*/
-					switch( ch )
-					{
-						case '+':
-							temp.oper='+';
-							temp.oppri=plus;
-							break;
-						    
-				 		case '-':
-				 			temp.oper='-';
-							temp.oppri=minus;
-							break;
-						    
-						case '*':
-							temp.oper='*';
-							temp.oppri=mult;
-						    break;
-						    
-						case '/':
-							temp.oper='/';
-							temp.oppri=divid;
-						    break;
-						    
-						case '(':
-							temp.oper='(';
-							temp.oppri=Lpare;
-						    break;
-						    
-						case ')':
-							temp.oper=')';
-							temp.oppri=Rpare;
-							
-						    break;
-						default:
-							printf("Not +-*/()\n");
-					} 
+				temp = temp.SetData( ch );//準備好資料(temp) 等後存入 stack 
+				
+				
 				//----------------看到了 右括號--------則pop到看到 左括號為止 
-				if( ch == ')')//不用 push 
+				if( ch == ')')//不用 push')' 
 				{
 				   	while( s.a[s.top].oper!='(' )
 					{
 						eatPop=s.Pop();
 					    post.PutC(  eatPop.oper);
-		//				printf("%c",eatPop.oper);
+		                //printf("%c",eatPop.oper);
 					}
-					s.Pop();//再把 ( 丟掉 
+					s.Pop();//再把'('丟掉 
 				} 
 				
 				else//-------------push 的都不是右括號--------------------- 
 				{
-				    if(  s.a[s.top].oppri > temp.oppri     //push 進去 的優先權較小   
-					&& s.top!= -1 )//先 pop 再 push 
-					{
+				    if(!s.IsEmpty() && //是空的就不用再判斷優先 直接PUSH  
+					    (s.TopLevel() > temp.oppri //push 進去 的優先權較小
+					     || temp.oppri == s.TopLevel())//      或優先權一樣
+					  )     
+					     //先 pop 再 push 
+					{  
 						//先 pop 
 						eatPop=s.Pop();//接收  pop的東西 
-		//				printf("%c",eatPop.oper);//印出  
-						post.PutC( eatPop.oper );//放結果 收pop 出來的東西 
+		                post.PutC( eatPop.oper );//放結果 收pop 出來的東西 
 					 
-						//再 push
+						//再 push  遇到 '(' 會降優先權
 						s.Push(temp); 
-					
-						if( ch=='(' )//如果是 括號 push進去以後 修改優先權 
-							s.a[s.top].oppri=low;
 					}
-					
-					else if( temp.oppri > s.a[s.top].oppri //push 進去 的優先權較大 
-					&& s.top!= -1)//不須 pop 
-					{//直接push 
-						s.Push(temp); 
-					
-						if( ch=='(' )//如果是 括號 push進去以後 修改優先權 
-						s.a[s.top].oppri=low;
-					}
-					
-					else if( temp.oppri == s.a[s.top].oppri //如果位階一樣  
-					&& s.top!= -1)                          //左邊的 運算子 先pop 再push進去 
-					{
-					  // 變數	
-						eatPop=s.Pop();//接收  pop的東西 
-		//				printf("%c",eatPop.oper);//印出  
-						post.PutC( eatPop.oper );//放結果 收pop 出來的東西 
-					 
-						//再 push
-						//printf("再 push %c\n",temp.oper);
-						s.Push(temp); 
-					
-						if( ch=='(' )//如果是 括號 push進去以後 修改優先權 
-							s.a[s.top].oppri=low;
-					}
-				 
-				    else//stack 為空 直接push 
-					{
+					else//直接push (不須用 先POP || stack 為空) 
+					{   
+					    //Push 到 '(' 會降優先權 
 						s.Push(temp);	
-					
-						if( ch=='(' )//如果是 括號 push進去以後 修改優先權 
-							s.a[s.top].oppri=low;
 					} 
-			    }
+				}
 			}
 			pre.PreData = ch;//即將讀入下一個字符 紀錄當前 ch
 			//printf("已紀錄 %c\n",ch); 
@@ -217,8 +155,8 @@ int main()
 		else//處理結束(一行結束)  
 		{
 			printf("轉後序    ");
-			//----------------------------------確定了 數字長度 
-				if( pre.ReturnData()!=0 )
+			//-----------------讀到了(\n)---總結前面讀到的數字 
+				if( pre.ReturnData()!=0 )//防止存到 括號val=0 
 				{
 					post.PutN( pre.ReturnData() );//存結果
 					pre.Clear();
@@ -227,29 +165,18 @@ int main()
 			while( !s.IsEmpty() )
 			{
 				post.PutC(s.a[s.top].oper);
-				s.Pop().oper;  //1,2 擇一存在  
-			//	printf("%c",s.Pop().oper);//1,2 擇一存在 
+				s.Pop().oper;  //1,2 擇一使用
+			//	printf("%c",s.Pop().oper);//1,2 擇一使用 
 			}
-			
-			//printf("\n");
-		    //printf("下結果為\n");
-		    /*for(int i = 0 ; i<post.now ;i++)
-			{
-				if( post.term[i].type==val )
-			printf("i=%d %3d type=%d\n",i,post.term[i].value,post.term[i].type);
-				else
-		    printf("i=%d %3c type=%d\n",i,post.term[i].oper ,post.term[i].type);	
-			}*/
-	        //printf("上結果為\n\n");
-			
+			/*印出結果*/
 			post.Show();
-			/*印出結果*/ 
+			 
 		    /*計算 後置運算 利用 post 暫時存放的內容 */
 			printf(" =>> %d \n",post.CalcuPost());
 			printf("=============================\n");
 			
 			/*清除 暫存*/
-			post.Zero();
+			post.Clear();
 		} 
 	}
 	
@@ -258,6 +185,7 @@ int main()
 	system("pause");
     return 0;
 }
+
 //------------------------------------
 bool mystack::IsEmpty()
 {
@@ -280,7 +208,12 @@ void mystack::Push(data da)
 	if(IsFull())
 		printf("The STACK is full") ;
 	else
+	{
+	    if( da.oppri == Rpare )// '(' 在 stack 為最低優先權 
+	        da.oppri = low;
+		
 		a[++top] = da ;
+	}
 }
 //------------------------------------	
 data mystack::Pop()
@@ -291,13 +224,15 @@ data mystack::Pop()
 			return a[top--] ;
 }
 //------------------------------------
-data mystack::Top()
+Myoppri mystack::TopLevel()
 {
 	if(IsEmpty())
-		printf("The STACK is empty") ;
+	{
+	//	printf("The STACK is empty") ;
+	}
 	else
-		return a[top] ;//回傳結構   之後傳回去要選  val || oper  
-}
+		return a[top].oppri;//回傳等級 
+} 
 //------------------------------------
 int Myatoi(char a)
 {
@@ -338,7 +273,7 @@ void myresult::Show()
 	//printf("\n");
 }
 //------------------------------------
-void myresult::Zero()
+void myresult::Clear()
 {
 	int i=0;
 	while( i!=MAX-1 )
@@ -431,5 +366,45 @@ int PreNum::Clear()
 	PreData = -1;
 	for(int i=0 ; i<MAX ; i++)
 	    data[i]=0; 
+}
+//------------------------------------
+data data::SetData(char ch)
+{
+	data re;
+	switch( ch )
+	{
+		case '+':
+			re.oper='+';
+			re.oppri=plus;
+			break;
+						    
+		case '-':
+			re.oper='-';
+			re.oppri=minus;
+			break;
+						    
+		case '*':
+			re.oper='*';
+			re.oppri=mult;
+		    break;
+						    
+		case '/':
+			re.oper='/';
+			re.oppri=divid;
+			 break;
+						    
+		case '(':
+			re.oper='(';
+			re.oppri=Lpare;
+		    break;
+						    
+		case ')':
+			re.oper=')';
+			re.oppri=Rpare;
+			   break;
+		default:
+			printf("Not +-*/()\n");
+	}
+	return re; 
 }
 //------------------------------------
