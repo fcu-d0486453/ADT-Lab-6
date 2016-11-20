@@ -4,8 +4,11 @@
 /*括號  前序*/
 typedef enum {null,op,val} mytype ;
 typedef enum {low=0,plus=1,minus=1,mult=2,divid=2,Rpare=17,Lpare=17} Myoppri;
+
 int Myatoi(char );//字元 轉數字 
 bool IsOperator(char );//判斷是不是  運算符號 
+
+
 
 struct data
 {
@@ -41,7 +44,7 @@ struct myresult//儲存 轉換後的結果
 	void Zero();
 	void PutC(char);//以字元 存入 term 
 	void PutN(int);//以整數 存入 term  
-	
+	int  CalcuPost();//計算後序  有小數會失去精準 
 	myresult()
 	{
 		Zero();
@@ -82,15 +85,19 @@ int main()
 		
 	while( (ch=fgetc(fptr)) != EOF )//讀進來 
 	{
-		
+		if( ch == '\n' )
+		    printf("  中序");
+		printf("%c",ch);//印出 中序用 
 		if( ch != '\n')//同一行 
 		{
+			
+		
 			//printf("尚未換行 DATA是 %c\n",ch);
 			if( !IsOperator(ch) )//是運算元就進此判斷  
 			{
 		        //printf("此為 數字類型\n");
 				//儲存不在這邊處理 看到運算符才處理) 
-			    printf("%c",ch);
+		//	    printf("%c",ch);
 				pre.Put(ch);
 			}
 			
@@ -147,7 +154,7 @@ int main()
 					{
 						eatPop=s.Pop();
 					    post.PutC(  eatPop.oper);
-						printf("%c",eatPop.oper);
+		//				printf("%c",eatPop.oper);
 					}
 					s.Pop();//再把 ( 丟掉 
 				} 
@@ -159,7 +166,7 @@ int main()
 					{
 						//先 pop 
 						eatPop=s.Pop();//接收  pop的東西 
-						printf("%c",eatPop.oper);//印出  
+		//				printf("%c",eatPop.oper);//印出  
 						post.PutC( eatPop.oper );//放結果 收pop 出來的東西 
 					 
 						//再 push
@@ -183,7 +190,7 @@ int main()
 					{
 					  // 變數	
 						eatPop=s.Pop();//接收  pop的東西 
-						printf("%c",eatPop.oper);//印出  
+		//				printf("%c",eatPop.oper);//印出  
 						post.PutC( eatPop.oper );//放結果 收pop 出來的東西 
 					 
 						//再 push
@@ -209,6 +216,7 @@ int main()
 		
 		else//處理結束(一行結束)  
 		{
+			printf("轉後序    ");
 			//----------------------------------確定了 數字長度 
 				if( pre.ReturnData()!=0 )
 				{
@@ -219,31 +227,32 @@ int main()
 			while( !s.IsEmpty() )
 			{
 				post.PutC(s.a[s.top].oper);
-				printf("%c",s.Pop().oper);
+				s.Pop().oper;  //1,2 擇一存在  
+			//	printf("%c",s.Pop().oper);//1,2 擇一存在 
 			}
 			
-			printf("\n\n");
-		    printf("下結果為\n");
-		    //post.Show();
-		    for(int i = 0 ; i<post.now ;i++)
+			//printf("\n");
+		    //printf("下結果為\n");
+		    /*for(int i = 0 ; i<post.now ;i++)
 			{
 				if( post.term[i].type==val )
 			printf("i=%d %3d type=%d\n",i,post.term[i].value,post.term[i].type);
 				else
 		    printf("i=%d %3c type=%d\n",i,post.term[i].oper ,post.term[i].type);	
-			}
-	        printf("\n");
-			printf("上結果為\n\n");
+			}*/
+	        //printf("上結果為\n\n");
 			
+			post.Show();
 			/*印出結果*/ 
-		    
-			/*計算 後置運算 利用 post 暫時存放的內容 */
-			/*~~~~~~~~~~~~~*/
+		    /*計算 後置運算 利用 post 暫時存放的內容 */
+			printf(" =>> %d \n",post.CalcuPost());
+			printf("=============================\n");
 			
 			/*清除 暫存*/
 			post.Zero();
 		} 
 	}
+	
 	printf("\n");
 	fclose(fptr);  
 	system("pause");
@@ -326,7 +335,7 @@ void myresult::Show()
 		else
 		    printf("%c",term[i].oper);	
 	}
-	printf("\n");
+	//printf("\n");
 }
 //------------------------------------
 void myresult::Zero()
@@ -340,6 +349,65 @@ void myresult::Zero()
 		i++;
 	}
 	now=0; 
+}
+//------------------------------------
+int myresult::CalcuPost()
+{
+	int result = 0;
+	int Mae,Ushiro;//pop 出來 順序剛好會相反 
+	char oper;
+	mystack ans;
+	data temp;
+	
+	for(int i = 0 ; i<now ; i++)
+	{
+		/*if( term[i].type==val )
+		    printf("%d",term[i].value);
+		else    
+		    printf("%c",term[i].oper);
+		*/
+		if( term[i].type == val)//數字就 push 
+		{
+			ans.Push( term[i] );
+		}
+		
+		else//看到符號 pop pop push 
+		{
+			switch ( term[i].oper )
+			{
+				case '+':
+					Ushiro = ans.Pop().value;
+					Mae    = ans.Pop().value;
+					temp.value = Mae + Ushiro;//做好計算 
+					ans.Push( temp );    //再 push 
+					break;
+			    case '*':
+			    	Ushiro = ans.Pop().value;
+					Mae    = ans.Pop().value;
+					temp.value = Mae * Ushiro;//做好計算 
+					ans.Push( temp );    //再 push 
+					break;
+				case '/'://順序注意   
+					Ushiro    = ans.Pop().value;
+					Mae       = ans.Pop().value;
+					temp.value = Mae / Ushiro;//做好計算 
+					ans.Push( temp );    //再 push 
+					break;
+				case '-'://順序注意 
+					Ushiro    = ans.Pop().value;
+					Mae       = ans.Pop().value;
+					temp.value= Mae - Ushiro;//做好計算 
+					ans.Push( temp );    //再 push 
+					break;
+				default: 
+				    printf("Not + - / *\n");
+			}	
+		}
+	}
+	result = ans.Pop().value;
+	//printf("獲得結果 %d\n",result);
+	
+	return result;
 }
 //------------------------------------
 int PreNum::ReturnData()
